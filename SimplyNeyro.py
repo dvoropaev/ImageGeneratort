@@ -4,8 +4,8 @@ import numpy as np
 import json
 import random
 
-class NeuralNetwork:
 
+class NeuralNetwork:
 	def __init__(self, input_size, hidden_layers, output_size, learning_rate=0.5):
 		self.learning_rate = learning_rate
 		self.layers = [input_size] + hidden_layers + [output_size] # layers[i] - колличество нейронов на i-том слое
@@ -27,7 +27,24 @@ class NeuralNetwork:
 			a = self.sigmoid(z)  
 			self.a.append(a)
 		return [a.flatten().tolist() if isinstance(a, np.ndarray) else a for a in self.a]
-#		return self.a[-1]
+
+	def backward(self, X, y):
+		# Вычисляем ошибку на выходе
+		output_error = self.a[-1] - y
+		delta = output_error * self.sigmoid_derivative(self.a[-1])
+
+		# Обновляем веса и смещения для последнего слоя
+		self.weights[-1] -= self.learning_rate * np.dot(self.a[-2].T, delta)
+		self.biases[-1] -= self.learning_rate * np.sum(delta, axis=0, keepdims=True)
+
+		for i in reversed(range(len(self.weights) - 1)):
+			delta = np.dot(delta, self.weights[i + 1].T) * self.sigmoid_derivative(self.a[i + 1])
+
+			# Убедитесь, что self.a[i] имеет правильную форму:
+			if len(self.a[i].shape) == 1:
+				self.a[i] = self.a[i].reshape(1, -1)  # Преобразуем в (1, 300)
+				self.weights[i] -= self.learning_rate * np.dot(self.a[i].T, delta)
+				self.biases[i] -= self.learning_rate * np.sum(delta, axis=0, keepdims=True)
 
 	def sigmoid(self, z):
 		return 1 / (1 + np.exp(-z))
